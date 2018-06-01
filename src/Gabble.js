@@ -1,134 +1,6 @@
-import React, {Component, PureComponent} from 'react';
+import React, {Component} from 'react';
 
-import Random from './Random';
-
-
-const iTileSize = 36;
-const iSlotBorder = 2;
-const iTileSlotSize = iTileSize + iSlotBorder * 2;
-
-const styleTable =
-{
-  fontSize: 'large',
-  fontFamily: 'sans-serif',
-  borderSpacing: 0,
-  backgroundColor: '#a1d4c4',
-  margin: 10,
-  outline: 'none'
-};
-
-const styleTD =
-{
-  borderWidth: iSlotBorder,
-  padding: 0,
-  margin: 0,
-  borderStyle: 'inset',
-  borderColor: '#82c7b1',
-  height: iTileSlotSize + iSlotBorder,
-  width: iTileSlotSize,
-};
-
-const styleXIndex =
-{
-  backgroundColor: 'white',
-  borderRight: '1px solid'
-}
-
-const styleTile =
-{
-  boxShadow: `inset 0px 0px 0px 1px rgba(0,0,0,0.2),
-              inset -2px -2px 0px 0px rgba(0,0,0,0.3),
-              inset 0px 2px 0px 0px rgba(255,255,255,0.5)`,
-  width: '95%',
-  height: '95%',
-  margin: 'auto',
-  backgroundColor: 'wheat',
-  borderRadius: 2
-};
-
-const styleLetterInner =
-{
-  position: 'fixed',
-  lineHeight: iTileSlotSize + 'px',
-  width: iTileSlotSize
-};
-
-const dctLetterCounts =
-{
-  E: 12,
-  A: 9,
-  I: 9,
-  O: 8,
-  N: 6,
-  R: 6,
-  T: 6,
-  L: 4,
-  S: 4,
-  U: 4,
-  D: 4,
-  G: 3,
-  B: 2,
-  C: 2,
-  M: 2,
-  P: 2,
-  F: 2,
-  H: 2,
-  V: 2,
-  W: 2,
-  Y: 2,
-  K: 1,
-  J: 1,
-  X: 1,
-  Q: 1,
-  Z: 1
-};
-
-
-class Rack extends Component
-{
-  constructor(props)
-  {
-    super(props);
-
-    let tiles = [];
-    for(const c in dctLetterCounts)
-    {
-      const set = Array(dctLetterCounts[c]).fill(c);
-      tiles = tiles.concat(set);
-    }
-
-    this.tiles = new Set(tiles);
-    this.state = {rack: []};
-    this.rnd = new Random();
-  }
-
-  // Fills from the bag onto the rack till rack has 7 tiles or bag is empty
-  fill()
-  {
-    let rack = [...this.state.rack];
-    const nNeeded = 7 - rack.length;
-    const nRemain = this.tiles.size;
-
-    // If we need >= remaining, just add them all
-    if(nRemain <= nNeeded)
-    {
-
-    }
-    else
-    {
-
-    }
-
-  }
-
-
-  render()
-  {
-
-  }
-}
-
-
+import {Styles, iTileSize} from './Styles';
 
 export default class Gabble extends Component
 {
@@ -139,12 +11,12 @@ export default class Gabble extends Component
     // Styles for ach type of square
     this.styleValues =
     {
-      '0': {backgroundColor: '#f6aa95'},  // Board center
-      '2': {backgroundColor: '#81c8f2'},  // DL
-      '3': {backgroundColor: '#0196d8'},  // TL
-      '@': {backgroundColor: '#fda797'},  // DW
-      '#': {backgroundColor: '#eb1c2c'},  // TW
-      ' ': {backgroundColor: '#b1e4d4'}   // Normal Tile
+      '0': Styles.Center,
+      '2': Styles.DoubleLetter,
+      '3': Styles.TripleLetter,
+      '@': Styles.DoubleWord,
+      '#': Styles.TripleWord,
+      ' ': Styles.Normal
     }
 
     // Array representing the squares status
@@ -190,16 +62,17 @@ export default class Gabble extends Component
     }
 
     this.elemXHeader =
-      <tr style={styleXIndex}>
-        {[...Array(15).keys()].map((e, i) => <td style={styleXIndex} key={i}>{String.fromCharCode(i + 65)}</td>)}
+      <tr>
+        {[...Array(15).keys()].map((e, i) => <td style={Styles.boardXIndex} key={i}>{String.fromCharCode(i + 65)}</td>)}
       </tr>;
   }
 
   componentDidMount()
   {
     this.place('APPLE', 1, 1, true);
+    this.place('MANGOES', 0, 3, false);
+
     this.refs.board.focus();
-    //this.place('SYZYGY', 0, 3, false);
   }
 
   // tells if word fits at the given pos
@@ -207,12 +80,12 @@ export default class Gabble extends Component
   {
     if(bVert)
     {
-      if(iX == 15) return false;
+      if(iX === 15) return false;
       if(iY + iLen > 15) return false;
     }
     else
     {
-      if(iY == 15) return false;
+      if(iY === 15) return false;
       if(iX + iLen > 15) return false;
     }
 
@@ -341,6 +214,32 @@ export default class Gabble extends Component
     }
   }
 
+
+  // Gets the style in which the letter at x, y should be drawn
+  getLetterStyle = (sTile, x, y) =>
+  {
+    // Tile marked bad
+    if(this.state.bads[y][x] > 0)
+    {
+      return Styles.boardTileBad
+    }
+
+    // Empty slot
+    if(sTile === '')
+    {
+      return { width: iTileSize, height: iTileSize};
+    }
+
+    // Non overlapped or overlap with same letter
+    if(sTile.length === 1 || (sTile.length === 2 && sTile[0] === sTile[1]))
+    {
+      return Styles.Tile;
+    }
+
+    // Overlapped - bad tile
+    return Styles.boardTileBad
+  }
+
   render()
   {
     const elemTiles = this.values.map
@@ -349,76 +248,46 @@ export default class Gabble extends Component
       {
         return (
           <tr key={y}>
-            {
-              row.map
-              (
-                (col, x) =>
-                {
-                  const hint = String.fromCharCode(65 + x) + ',' + (y + 1);
-                  const sTile = this.state.board[y][x];
-                  const iLast = sTile.length-1;
+          {
+            row.map
+            (
+              (col, x) =>
+              {
+                // create the hint string
+                const hint = String.fromCharCode(65 + x) + ',' + (y + 1);
 
-                  let styleLetter;
+                // Get ths style to draw
+                const sTile = this.state.board[y][x];
+                const styleLetter = this.getLetterStyle(sTile, x, y);
 
-                  if(this.state.bads[y][x] > 0)           // Bad tile
-                  {
-                    styleLetter = {...styleTile, ...{backgroundColor: 'orangered'}}
-                  }
-                  else if(sTile === '')           // Slot empty
-                  {
-                    styleLetter =
-                    {
-                      width: iTileSize,
-                      height: iTileSize,
-                    };
-                  }
-                  else if(sTile.length == 1 || (sTile.length == 2 && sTile[0] == sTile[1])) // No overlap
-                  {
-                    styleLetter = styleTile;
-                  }
-                  else                      // Overlap - warn in red
-                  {
-                    styleLetter = {...styleTile, ...{backgroundColor: 'orangered'}}
-                  }
-
-                  return (
-                    <td key={x} style={{...this.styleValues[col], ...styleTD}} title={hint}>
-                      <div style={styleLetter}>
-                        <div style={{lineHeight: iTileSize +'px'}}>
-                          {
-                            sTile.split('').map
-                            (
-                              (s, i)=>
-                                <div key={i} style={{...styleLetterInner, opacity: i == iLast ? 1 : 0.3}}>
-                                  {s}
-                                </div>
-                            )
-                          }
+                return (
+                  <td key={x} style={{...this.styleValues[col], ...Styles.boardTD}} title={hint}>
+                    <div style={styleLetter}>
+                      <div style={{lineHeight: iTileSize +'px'}}>
+                        <div style={Styles.boardLetter}>
+                          {sTile[0]}
                         </div>
                       </div>
-                    </td>
-                  )
-                }
-              )
-            }
+                    </div>
+                  </td>
+                );
+              }
+            )
+          }
           </tr>
         );
       }
     );
 
-
     return (
       <div>
-        <table style={styleTable} className={this.state.invalid ? 'shake' : 'noshake'}
+        <table style={Styles.boardTable} className={this.state.invalid ? 'shake' : 'noshake'}
                onKeyDown={this.onKey} tabIndex='1' ref='board'>
-          
           <tbody>
-          {this.elemXHeader}
-          {elemTiles}
+            {this.elemXHeader}
+            {elemTiles}
           </tbody>
         </table>
-        <br/>
-        <input ref='inp' onKeyUp={this.onPlace} tabIndex='0' autoFocus='true'/>
       </div>
     );
   }

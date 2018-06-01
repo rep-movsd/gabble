@@ -1,9 +1,9 @@
-export class Random
+export default class Random
 {
-  // If seed is ommitted use timestamp
+  // If seed is omitted use timestamp
   constructor(i)
   {
-    this.seed(i || (new Date()) .getTime());
+    this.seed(i || (new Date()).getTime());
   }
 
   seed(i)
@@ -18,7 +18,7 @@ export class Random
     this.m_z = (36969 * (this.m_z & 65535) + (this.m_z >> 16)) & 0xffffffff;
     this.m_w = (18000 * (this.m_w & 65535) + (this.m_w >> 16)) & 0xffffffff;
     let result = ((this.m_z << 16) + this.m_w) & 0xffffffff;
-    return result % n;
+    return Math.abs(result) % n;
   }
 
 }
