@@ -12,9 +12,11 @@ export default class Rack extends Component
     {
       rack: [],  // current 7 letters
       used: [],  // current word attempt
-      left: []   // remaining letters
+      left: [],  // remaining letters
       // left + used == rack at all times
     };
+
+    this.wild = {}; // What letters are the wildcards representing
   }
 
   // Get ref to bag component
@@ -36,19 +38,69 @@ export default class Rack extends Component
     this.refs.rack.focus();
   }
 
+  // Moves tile from left to used
+  use = (idx, ch, chWild) =>
+  {
+    let left = [...this.state.left];
+    left.splice(idx, 1);
+
+    let used = [...this.state.used];
+    used = used.concat(ch);
+
+    // Note what this wildcard is used for
+    if(chWild)
+    {
+      this.wild[used.length-1] = chWild;
+    }
+
+    this.setState({left, used});
+  }
+
+  // Moves the last tile in used to left
+  unUse()
+  {
+    let used = [...this.state.used];
+    const ch = used.pop();
+
+    // Delete wild card if any
+    delete this.wild[used.length];
+
+    let left = [...this.state.left];
+    left.push(ch);
+
+    this.setState({left, used});
+  }
+
   onKeyDown = (evt) =>
   {
     let ch = evt.key.toUpperCase();
-    const idx = this.state.left.indexOf(ch);
+    let idx = this.state.left.indexOf(ch);
     if(idx >= 0)
     {
-      let left = [...this.state.left];
-      left = left.splice(idx, 1);
-
-      let used = [...this.state.used];
-      used = used.concat(ch);
-
-      this.setState({left, used});
+      this.use(idx, ch);
+    }
+    else
+    {
+      console.log(ch);
+      if(ch === 'BACKSPACE' && this.state.used.length > 0)
+      {
+        this.unUse();
+      }
+      else if(ch === 'PAGEDOWN')
+      {
+        let left = [...this.state.left];
+        left.sort()
+        this.setState({left});
+      }
+      else if(evt.keyCode > 64 && evt.keyCode < 91)
+      {
+        // look for wildcard
+        idx = this.state.left.indexOf(' ');
+        if(idx >= 0)
+        {
+          this.use(idx, ' ', ch);
+        }
+      }
     }
   }
 
@@ -75,11 +127,15 @@ export default class Rack extends Component
             this.state.used.map
             (
               (e, i) =>
-              <div key={i} style={Styles.rackTile}>
-                <div style={Styles.Tile}>
-                  {e}
-                </div>
-              </div>
+              {
+                return (
+                  <div key={i} style={Styles.rackTile}>
+                    <div style={Styles.Tile}>
+                      {this.wild[i] || e}
+                    </div>
+                  </div>
+                )
+              }
             )
           }
         </div>
