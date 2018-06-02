@@ -42,7 +42,7 @@ export default class Gabble extends Component
     this.state =
     {
       board: [], // Grid with letters
-      words: [], // array of words - each is {x, y, vert}
+      words: [], // array of words - each is {x, y, bVert}
       bads:    [], // Grid with semaphore of bad tiles
       placed: true, // Whether the last word has been placed
       word: {},
@@ -111,7 +111,7 @@ export default class Gabble extends Component
   unPlace = () =>
   {
     const word = this.state.word;
-    if(word.sWord)
+    if(word.sWord != null)
     {
       const iLen = word.sWord.length;
 
@@ -129,7 +129,7 @@ export default class Gabble extends Component
         else ++iX;
       }
 
-      this.setState({board});
+      this.setState({board, word: {word: null}});
     }
   }
 
@@ -153,10 +153,10 @@ export default class Gabble extends Component
     ArrowDown  : [ 0,  1],
   };
 
-  // Board key handler
-  onKey = (evt) =>
+  // Board move key handler
+  moveWord = (evt) =>
   {
-    if(!this.state.placed)
+    if(!this.state.placed && this.state.word)
     {
       const word = this.state.word;
       const iLen = word.sWord.length;
@@ -175,6 +175,9 @@ export default class Gabble extends Component
         {
           this.unPlace(word);
           this.place(word.sWord, iX, iY, word.bVert);
+
+          // Return the word if successfully moved
+          return {sWord: word.sWord, iX, iY, bVert: word.bVert};
         }
         else // wiggle the board, and make teh letters red
         {

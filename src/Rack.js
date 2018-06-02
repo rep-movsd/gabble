@@ -11,14 +11,15 @@ export default class Rack extends Component
     this.state =
     {
       rack: [],  // current 7 letters
-      vert: false,
+      bVert: false,
       x: 0,
-      y: 0,
-      word: ''
+      iY: 0,
+      sChars: '',  // Last typed arrChars, including the co-ord
+      sWord: '' // Current word typed
     };
 
     this.wild = {}; // What letters are the wildcards representing
-    this.word = '';
+    this.sChars = '';
   }
 
   // Get ref to bag and board component
@@ -37,14 +38,15 @@ export default class Rack extends Component
   }
 
   // Parses out the Y co-ord at pos in  word
-  // returns [num, count] where
-  // count is number of chars consumed
-  // num is clamped to 0 to 14
-  parseY = (word, pos) =>
+  // returns [num, count, err] where
+  // count is number of arrChars consumed
+  // num is parsed number - (1 to 15) goes to (0 to 14)
+  // err is true if entered value > 15
+  parseY = (sChars, pos) =>
   {
-    let count = 0, num = 0;
-    const digit1 = parseInt(word[pos]);
-    const digit2 = parseInt(word[pos + 1]);
+    let count = 0, num = 0, err = false;
+    const digit1 = parseInt(sChars[pos]);
+    const digit2 = parseInt(sChars[pos + 1]);
 
     if(!isNaN(digit1))
     {
@@ -58,69 +60,137 @@ export default class Rack extends Component
         num = num * 10 + digit2;
 
         // Clamp to 14
-        if(num > 14) num = 14;
+        if(num > 15) err = true;
       }
     }
 
-    return {num, count};
+    --num;
+    return {num, count, err};
   }
 
-  // Parses out the X co-ord at pos in word (A to P)
+  // Parses out the X co-ord at pos in arrChars (A to P)
   // returns {num, count} where
-  // count is number of chars consumed (0 or 1)
+  // count is number of arrChars consumed (0 or 1)
   // num is clamped to 0 to 14
-  parseX = (word, pos) =>
+  parseX = (sChars, pos) =>
   {
-    let num = 0, count = 0;
-    let x = this.word.charCodeAt(pos) - 65
-    if(x >= 0 && x <= 14)
+    let num = 0, count = 0, err = false;
+    const digit1 = parseInt(sChars[pos]);
+
+    // Check if its not a digit
+    if(isNaN(digit1))
     {
-      num = x;
-      ++count;
+      let x = this.sChars.charCodeAt(pos) - 65
+      if(x >= 0 && x <= 14)
+      {
+        num = x;
+        ++count;
+      }
+      else
+      {
+        err = true;
+      }
     }
 
-    return {num, count};
+    return {num, count, err};
   }
 
-  onKeyDown = (evt) =>
+  processWord = (sChars) =>
   {
-    //idx = this.state.left.indexOf(' ');
-
-    // Accumulate the word
-    this.word += evt.key.toUpperCase();
-
-    // A valid co-ord can be like 1A A1 12A A12
-    const iLen = this.word.length;
-
     // Try grabbing 1 or 2 digits, if there were, grab A to P as X co-ord
-    let dctY = this.parseY(this.word, 0);
-    let dctX = this.parseX(this.word, dctY.count)
-
-    let x = 0, y = 0;
-    let vert = false;
+    let dctY = this.parseY(sChars, 0);
+    let dctX = this.parseX(sChars, dctY.count);
+    let bVert = false;
 
     // If we got a Y co-ord first, its a vertical
     if(dctY.count)
     {
-      vert = true;
-      y = dctY.num;
+      bVert = true;
     }
-    else
+    else // Try again for Y after X (horizontal)
     {
-      // Try again for Y after X (horizontal)
-      dctY = this.parseY(this.word, dctX.count)
-      y = dctY.num;
+      dctY = this.parseY(sChars, dctX.count)
     }
 
-    x = dctX.num;
+    // If no error and both X and Y parsed
+    if(!dctY.err && !dctY.err)
+    {
+      let iX = 0, iY = 0;
+      let sWord;
 
-    let sWord = this.word.substr(dctX.count + dctY.count);
+      // Unless there is no Y co-ord treat the whole thing as a word
+      if(dctY.count)
+      {
+        iX = dctX.num;
+        iY = dctY.num;
+        sWord = sChars.substr(dctX.count + dctY.count);
+      }
+      else
+      {
+        sWord = sChars;
+      }
 
-    this.setState({x, y, vert, word: this.word});
-
-    this.board.unPlace();
-    this.board.place(sWord, x, y, vert);
+      // If the word fits, then update
+      if(this.board.doesFit(sWord.length, iX, iY, bVert))
+      {
+        // Update the word
+        this.sChars = sChars;
+        this.setState({iX, iY, bVert, sChars, sWord});
+        this.board.unPlace();
+        this.board.place(sWord, iX, iY, bVert);
+      }
+    }
   }
+
+  // Accumulate a char into arrChars
+  addChar = (evt) =>
+  {
+    //idx = this.state.left.indexOf(' ');
+
+    let sChars = this.sChars + evt.key.toUpperCase();
+    this.processWord(sChars);
+  }
+
+  // Remove the last char from arrChars
+  delChar = () =>
+  {
+    if(this.state.sWord.length)
+    {
+      let sChars = this.sChars.substr(0, this.sChars.length - 1);
+      this.processWord(sChars);
+    }
+  }
+
+  // Clear the chars and word
+  clearWord = () =>
+  {
+    this.sChars = '';
+    this.setState({sChars: '', sWord: ''});
+    this.board.unPlace();
+  }
+
+  // Arrow key
+  moveWord = (evt) =>
+  {
+    // let the board handle it and reconstruct the typed word here
+    const dctWord = this.board.moveWord(evt);
+    if(dctWord != null)
+    {
+      const sX = String.fromCharCode(dctWord.iX + 65);
+      const sY = (dctWord.iY + 1);
+      this.sChars = (dctWord.bVert ? sY + sX : sX + sY) + dctWord.sWord;
+      this.setState
+      (
+        {
+          iX: dctWord.iX,
+          iY: dctWord.iY,
+          bVert: dctWord.bVert,
+          sChars: this.sChars,
+          sWord: dctWord.sWord
+        }
+      );
+    }
+  };
 
   render()
   {
@@ -140,7 +210,10 @@ export default class Rack extends Component
         }
         </div>
 
-        <div>{this.state.word}</div>
+        <div>{this.state.sChars}</div>
+        <hr/>
+        <div>{this.state.sWord}</div>
+
       </div>
     );
 

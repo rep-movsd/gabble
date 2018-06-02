@@ -66,8 +66,6 @@ const dctLetterPoints =
   Z: 10
 };
 
-
-
 export default class Bag extends Component
 {
   constructor(props)

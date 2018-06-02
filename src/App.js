@@ -16,6 +16,8 @@ class App extends Component
 
     // Inform the rack about the board
     this.refs.rack.setBoard(this.refs.board);
+
+    this.refs.app.focus();
   }
 
   // Global key handler
@@ -26,12 +28,25 @@ class App extends Component
     // Send A to Z and 1 to 9 to the rack
     if((keyCode > 64 && keyCode < 91) || (keyCode > 48 && keyCode < 58))
     {
-      this.refs.rack.onKeyDown(evt);
+      this.refs.rack.addChar(evt);
     }
     // Arrow keys
     else if((keyCode > 36 && keyCode < 41))
     {
-      this.refs.board.onKeyDown(evt);
+      this.refs.rack.moveWord(evt);
+    }
+    else
+    {
+      switch(keyCode)
+      {
+        case 8: // backspace
+          this.refs.rack.delChar();
+        break;
+
+        case 27: // escape
+          this.refs.rack.clearWord();
+        break;
+      }
     }
 
     console.log(evt.key);
@@ -44,7 +59,7 @@ class App extends Component
     // Left pane has board and rack
     // Right pane for other features
     return (
-      <div className="App" tabIndex='0' onKeyDown={this.onKeyDown} autoFocus='true'>
+      <div className="App" tabIndex='0' onKeyDown={this.onKeyDown} autoFocus='true' ref='app'>
         <div className='Board'>
           <Gabble ref='board'/>
           <Rack ref='rack'/>

@@ -81,7 +81,7 @@ export const Styles =
   TripleWord  : {backgroundColor: '#eb1c2c'},  // TW
   Normal      : {backgroundColor: '#b1e4d4'},  // Normal Tile
   Bad         : {backgroundColor: 'orangered'}, // Error Tile
-  Current     : {backgroundColor: 'wheat'}, // Current location
+  Current     : {backgroundColor: 'white'}, // Current location
 
 
   Bag:
