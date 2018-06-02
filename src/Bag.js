@@ -82,7 +82,7 @@ export default class Bag extends Component
       this.state.bag = this.state.bag.concat(set);
     }
 
-    this.rnd = new Random();
+    this.rnd = new Random(12);
   }
 
   // Gets upto n random tiles from the bag

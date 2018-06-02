@@ -62,7 +62,7 @@ export const Styles =
     backgroundColor: 'beige',
     borderColor: 'beige',
     height: iRackTileSize,
-    width: 7 * iRackTileSize,
+    width: 15 * iRackTileSize,
     alignItems: 'center'
   },
 
@@ -74,7 +74,6 @@ export const Styles =
     marginTop: 4,
   },
 
-
   Center      :  {backgroundColor: '#f6aa95'}, // Board center
   DoubleLetter: {backgroundColor: '#81c8f2'},  // DL
   TripleLetter: {backgroundColor: '#0196d8'},  // TL
@@ -82,6 +81,7 @@ export const Styles =
   TripleWord  : {backgroundColor: '#eb1c2c'},  // TW
   Normal      : {backgroundColor: '#b1e4d4'},  // Normal Tile
   Bad         : {backgroundColor: 'orangered'}, // Error Tile
+  Current     : {backgroundColor: 'wheat'}, // Current location
 
 
   Bag:
@@ -110,4 +110,8 @@ export const Styles =
 };
 
 Styles.boardTileBad = {...Styles.Tile, ...Styles.Bad};
+Styles.boardTileCurr = {...Styles.Tile, ...Styles.Current};
+
+
+Styles.RackXY = {...Styles.Rack, width: 1.5 * iRackTileSize, marginRight: iRackTileSize/2};
 

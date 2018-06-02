@@ -67,14 +67,6 @@ export default class Gabble extends Component
       </tr>;
   }
 
-  componentDidMount()
-  {
-    this.place('APPLE', 1, 1, true);
-    this.place('MANGOES', 0, 3, false);
-
-    this.refs.board.focus();
-  }
-
   // tells if word fits at the given pos
   doesFit = (iLen, iX, iY, bVert) =>
   {
@@ -119,24 +111,27 @@ export default class Gabble extends Component
   unPlace = () =>
   {
     const word = this.state.word;
-    const iLen = word.sWord.length;
-
-    let board = [...this.state.board];
-    let iX = word.iX, iY = word.iY;
-
-    // Go over each slot and chop the rightmost char
-    for(let n = 0; n < iLen; ++n)
+    if(word.sWord)
     {
-      // Chop last letter
-      board[iY][iX] = board[iY][iX].slice(0, -1);
+      const iLen = word.sWord.length;
 
-      // Move to next slot
-      if(word.bVert) ++iY; else ++iX;
+      let board = [...this.state.board];
+      let iX = word.iX, iY = word.iY;
+
+      // Go over each slot and chop the rightmost char
+      for(let n = 0; n < iLen; ++n)
+      {
+        // Chop last letter
+        board[iY][iX] = board[iY][iX].slice(0, -1);
+
+        // Move to next slot
+        if(word.bVert) ++iY;
+        else ++iX;
+      }
+
+      this.setState({board});
     }
-
-    this.setState({board});
   }
-
 
   // Invalidates a range of letters (appears in orange red)
   invalidate = (iLen, iX, iY, bVert, bInvalidate) =>
@@ -148,20 +143,6 @@ export default class Gabble extends Component
       if(bVert) ++iY; else ++iX;
     }
     this.setState({bads});
-  }
-
-  // When enter id pressed on the input field
-  onPlace = (evt) =>
-  {
-    if(evt.key === "Enter")
-    {
-      const sWord = this.refs.inp.value.toUpperCase();
-      if(this.place(sWord, 0, 0))
-      {
-        this.refs.inp.value = '';
-        this.refs.board.focus();
-      }
-    }
   }
 
   static dctKeyIncr =
@@ -214,20 +195,25 @@ export default class Gabble extends Component
     }
   }
 
-
   // Gets the style in which the letter at x, y should be drawn
   getLetterStyle = (sTile, x, y) =>
   {
     // Tile marked bad
     if(this.state.bads[y][x] > 0)
     {
-      return Styles.boardTileBad
+      return Styles.boardTileBad;
+    }
+
+    if(this.state.word.sWord != null && this.state.word.sWord.length == 0 && this.state.word.iX === x && this.state.word.iY === y)
+    {
+      console.log('curr');
+      return Styles.boardTileCurr;
     }
 
     // Empty slot
     if(sTile === '')
     {
-      return { width: iTileSize, height: iTileSize};
+      return {width: iTileSize, height: iTileSize};
     }
 
     // Non overlapped or overlap with same letter
@@ -235,6 +221,7 @@ export default class Gabble extends Component
     {
       return Styles.Tile;
     }
+
 
     // Overlapped - bad tile
     return Styles.boardTileBad
@@ -281,8 +268,8 @@ export default class Gabble extends Component
 
     return (
       <div>
-        <table style={Styles.boardTable} className={this.state.invalid ? 'shake' : 'noshake'}
-               onKeyDown={this.onKey} tabIndex='1' ref='board'>
+        <table className={this.state.invalid ? 'shake' : 'noshake'}
+               style={Styles.boardTable} ref='board'>
           <tbody>
             {this.elemXHeader}
             {elemTiles}
