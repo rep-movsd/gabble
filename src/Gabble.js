@@ -17,6 +17,7 @@ export default class Gabble extends Component
       '@': Styles.DoubleWord,
       '#': Styles.TripleWord,
       ' ': Styles.Normal
+
     }
 
     // Array representing the squares status
@@ -41,29 +42,38 @@ export default class Gabble extends Component
 
     this.state =
     {
-      board: [], // Grid with letters
-      words: [], // array of words - each is {x, y, bVert}
-      bads:    [], // Grid with semaphore of bad tiles
+      arrBoard: [],    // Grid with letters
+      arrBads:  [],    // Grid with semaphore of bad tiles
       placed: true, // Whether the last word has been placed
-      word: {},
+      dctWord: {},
+      dctBlankXY: {},   // Dict/Set of which squares have blanks
       invalid: false
     };
 
-    // board contains the actual letter grid
+    // arrBoard contains the actual letter grid
     for(let n = 0; n < 15; ++ n)
     {
-      this.state.board.push(new Array(15).fill(''));
+      this.state.arrBoard.push(new Array(15).fill(''));
     }
 
     // bads contains the invalid tiles
     for(let n = 0; n < 15; ++ n)
     {
-      this.state.bads.push(new Array(15).fill(0));
+      this.state.arrBads.push(new Array(15).fill(0));
     }
 
     this.elemXHeader =
       <tr>
-        {[...Array(15).keys()].map((e, i) => <td style={Styles.boardXIndex} key={i}>{String.fromCharCode(i + 65)}</td>)}
+        {
+          [...Array(16).keys()]
+            .map
+            (
+              (e, i) =>
+                <td style={Styles.boardXYIndex} key={i}>
+                  {i ? String.fromCharCode(i + 64) : ' '}
+                </td>
+            )
+        }
       </tr>;
   }
 
@@ -86,63 +96,82 @@ export default class Gabble extends Component
 
   // place a word at a certain location, in given orientation
   // No boundary checks performed
-  place = (sWord, iX, iY, bVert) =>
+  // Returns the character on the board if any that
+  // follows the last letter of this word
+  // coords start at 1, 1
+  place = (sWord, iX, iY, bVert, blanks) =>
   {
     const iLen = sWord.length;
     let iiX = iX, iiY = iY;
-    let board = this.state.board;
+    let arrBoard = this.state.arrBoard;
+    let bAnchored = false;
+    const dctBlankXY = {};
 
     // Append the characters onto the board array elements
     // We use append to allow overlaps
     for(let n = 0; n < iLen; ++n)
     {
       // Append
-      board[iiY][iiX] += sWord[n];
+      arrBoard[iiY][iiX] += sWord[n];
+
+      // If same char twice, its anchored
+      if(arrBoard[iiY][iiX][0] === arrBoard[iiY][iiX][1])
+      {
+        bAnchored = true;
+      }
+
+      dctBlankXY[iiX + ':' + iiY] = blanks[n];
 
       // Move to next slot
       if(bVert) ++iiY; else ++iiX;
     }
 
     // Update view, set placed mode false, so word can be moved
-    this.setState({board, placed: false, word: {sWord, iX, iY, bVert}});
+    this.setState({arrBoard, dctBlankXY, placed: false, dctWord: {sWord, iX, iY, bVert, bAnchored}});
+
+    // get the succeeding letter if any and return it
+    if(iiX < 15 && iiY < 15)
+    {
+      return arrBoard[iiY][iiX];
+    }
   }
 
   // Remove last word, needed for moving a word
   unPlace = () =>
   {
-    const word = this.state.word;
-    if(word.sWord != null)
+    const dctWord = this.state.dctWord;
+    if(dctWord.sWord != null)
     {
-      const iLen = word.sWord.length;
+      const iLen = dctWord.sWord.length;
 
-      let board = [...this.state.board];
-      let iX = word.iX, iY = word.iY;
+      let arrBoard = [...this.state.arrBoard];
+      let iX = dctWord.iX, iY = dctWord.iY;
 
       // Go over each slot and chop the rightmost char
       for(let n = 0; n < iLen; ++n)
       {
         // Chop last letter
-        board[iY][iX] = board[iY][iX].slice(0, -1);
+        arrBoard[iY][iX] = arrBoard[iY][iX].slice(0, -1);
 
         // Move to next slot
-        if(word.bVert) ++iY;
+        if(dctWord.bVert) ++iY;
         else ++iX;
       }
 
-      this.setState({board, word: {word: null}});
+      this.setState({arrBoard, dctWord: {sWord: null}});
     }
   }
 
   // Invalidates a range of letters (appears in orange red)
   invalidate = (iLen, iX, iY, bVert, bInvalidate) =>
   {
-    let bads = [...this.state.bads];
+    let arrBads = [...this.state.arrBads];
     for(let n = 0; n < iLen; ++n)
     {
-      bads[iY][iX] += bInvalidate ? 1 : -1;
+      arrBads[iY][iX] += bInvalidate ? 1 : -1;
       if(bVert) ++iY; else ++iX;
     }
-    this.setState({bads});
+    this.setState({arrBads});
   }
 
   static dctKeyIncr =
@@ -156,40 +185,43 @@ export default class Gabble extends Component
   // Board move key handler
   moveWord = (evt) =>
   {
-    if(!this.state.placed && this.state.word)
+    if(!this.state.placed && this.state.dctWord)
     {
-      const word = this.state.word;
-      const iLen = word.sWord.length;
-      let iX = word.iX, iY = word.iY;
+      const dctWord = this.state.dctWord;
+      const iLen = dctWord.sWord.length;
+      let iX = dctWord.iX, iY = dctWord.iY;
+      const blanks = [...this.state.blanks];
 
       // Get the increments
       const arrIncr = Gabble.dctKeyIncr[evt.key];
+
+      // Valid movement
       if(arrIncr)
       {
         // Apply
         iX += arrIncr[0];
         iY += arrIncr[1];
 
-        // Will it fit, then move the word
-        if(this.doesFit(iLen, iX, iY, word.bVert))
+        // Will it fit and is it not anchored , then move the word
+        if(!this.state.dctWord.bAnchored && this.doesFit(iLen, iX, iY, dctWord.bVert))
         {
-          this.unPlace(word);
-          this.place(word.sWord, iX, iY, word.bVert);
+          this.unPlace(dctWord);
+          const chPossible = this.place(dctWord.sWord, iX, iY, dctWord.bVert, blanks);
 
           // Return the word if successfully moved
-          return {sWord: word.sWord, iX, iY, bVert: word.bVert};
+          return {sWord: dctWord.sWord, iX, iY, bVert: dctWord.bVert, chPossible};
         }
-        else // wiggle the board, and make teh letters red
+        else // wiggle the board, and make the letters red
         {
           this.setState({invalid: true});
-          this.invalidate(iLen, word.iX,  word.iY, word.bVert, true);
+          this.invalidate(iLen, dctWord.iX,  dctWord.iY, dctWord.bVert, true);
 
           setTimeout
           (
             ()=>
             {
               this.setState({invalid: false});
-              this.invalidate(iLen, word.iX,  word.iY, word.bVert, false);
+              this.invalidate(iLen, dctWord.iX,  dctWord.iY, dctWord.bVert, false);
             },
             200
           );
@@ -202,14 +234,18 @@ export default class Gabble extends Component
   getLetterStyle = (sTile, x, y) =>
   {
     // Tile marked bad
-    if(this.state.bads[y][x] > 0)
+    if(this.state.arrBads[y][x] > 0)
     {
       return Styles.boardTileBad;
     }
 
-    if(this.state.word.sWord != null && this.state.word.sWord.length == 0 && this.state.word.iX === x && this.state.word.iY === y)
+    // If this letter is the start of the word, and word is empty
+    // set "current tile" style
+    if(this.state.dctWord.sWord != null &&
+       this.state.dctWord.sWord.length === 0 &&
+       this.state.dctWord.iX === x &&
+       this.state.dctWord.iY === y)
     {
-      console.log('curr');
       return Styles.boardTileCurr;
     }
 
@@ -225,7 +261,6 @@ export default class Gabble extends Component
       return Styles.Tile;
     }
 
-
     // Overlapped - bad tile
     return Styles.boardTileBad
   }
@@ -238,32 +273,35 @@ export default class Gabble extends Component
       {
         return (
           <tr key={y}>
-          {
-            row.map
-            (
-              (col, x) =>
-              {
-                // create the hint string
-                const hint = String.fromCharCode(65 + x) + ',' + (y + 1);
 
-                // Get ths style to draw
-                const sTile = this.state.board[y][x];
-                const styleLetter = this.getLetterStyle(sTile, x, y);
+            <td style={Styles.boardXYIndex}>{y+1}</td>
 
-                return (
-                  <td key={x} style={{...this.styleValues[col], ...Styles.boardTD}} title={hint}>
-                    <div style={styleLetter}>
-                      <div style={{lineHeight: iTileSize +'px'}}>
-                        <div style={Styles.boardLetter}>
-                          {sTile[0]}
+            {
+              row.map
+              (
+                (col, x) =>
+                {
+                  // create the hint string
+                  const hint = String.fromCharCode(65 + x) + ',' + (y + 1);
+
+                  // Get ths style to draw
+                  const sTile = this.state.arrBoard[y][x];
+                  const styleLetter = this.getLetterStyle(sTile, x, y);
+
+                  return (
+                    <td key={x} style={{...this.styleValues[col], ...Styles.boardTD}} title={hint}>
+                      <div style={styleLetter}>
+                        <div style={{lineHeight: iTileSize +'px'}}>
+                          <div style={Styles.boardLetter}>
+                            {sTile[0]}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                );
-              }
-            )
-          }
+                    </td>
+                  );
+                }
+              )
+            }
           </tr>
         );
       }

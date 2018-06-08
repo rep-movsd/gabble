@@ -29,10 +29,12 @@ export const Styles =
     width: iTileSlotSize+ iSlotBorder,
   },
 
-  boardXIndex:
+  boardXYIndex:
   {
     backgroundColor: 'white',
-    borderRight: '1px solid'
+    borderRight: '1px solid',
+    borderBottom: '1px solid'
+
   },
 
   Tile:
@@ -62,7 +64,7 @@ export const Styles =
     backgroundColor: 'beige',
     borderColor: 'beige',
     height: iRackTileSize,
-    width: 15 * iRackTileSize,
+    width: 7 * iRackTileSize,
     alignItems: 'center'
   },
 
@@ -106,12 +108,22 @@ export const Styles =
     top: -iBagTileSize * 0.64,
     left: iBagTileSize / 4,
     fontSize: 8
-  }
+  },
+
+
+
 };
 
 Styles.boardTileBad = {...Styles.Tile, ...Styles.Bad};
 Styles.boardTileCurr = {...Styles.Tile, ...Styles.Current};
 
 
-Styles.RackXY = {...Styles.Rack, width: 1.5 * iRackTileSize, marginRight: iRackTileSize/2};
+Styles.RackXY =
+{
+  ...Styles.Rack,
+  borderColor: '#82c7b1',
+  width: iRackTileSize,
+  //marginRight: iRackTileSize/2,
+  ...Styles.Normal
+};
 
